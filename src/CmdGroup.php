@@ -45,6 +45,10 @@ class CmdGroup
         return $this;
     }
 
+    /**
+     * @return void
+     * @throws CmdException
+     */
     public function exec()
     {
         if ($this->isRunning) {
@@ -69,8 +73,9 @@ class CmdGroup
             foreach ($this->proccesses as $cmd) {
                 $minTimeout = min($minTimeout, $cmd->getTimeoutTS());
                 foreach ($cmd->getIODescriptors() as $descriptor) {
-                    if ($descriptor instanceof PipeDescriptor && $descriptor->isWPipe() && !feof($stream = $descriptor->getStream())) {
-                        $cmds[$stream] = $cmd;
+                    /** @var resource $stream */
+                    if ($descriptor instanceof PipeDescriptor && $descriptor->isWPipe() && !feof($stream = $descriptor->getStream())) { /** @phpstan-ignore-line */
+                        $cmds[$stream] = $cmd; /** @phpstan-ignore-line */
                         $streams[] = $stream;
                     }
                 }
@@ -89,7 +94,7 @@ class CmdGroup
 
             if ($success) {
                 foreach ($streams as $stream) {
-                    $cmd = $cmds[$stream];
+                    $cmd = $cmds[$stream]; /** @phpstan-ignore-line */
                     if (!$cmd->poll()) {
                         unset($this->proccesses[array_search($cmd, $this->proccesses, true)]);
                     }
@@ -119,10 +124,13 @@ class CmdGroup
         return true;
     }
 
+    /**
+     * @return void
+     * @throws CmdException
+     */
     protected function startProcesses()
     {
-        while (count($this->proccesses) < $this->numProc && current($this->queue)) {
-            $cmd = array_shift($this->queue);
+        while (count($this->proccesses) < $this->numProc && ($cmd = array_shift($this->queue))) {
             $cmd->runInBackground(true);
             $cmd->exec();
             $this->proccesses[] = $cmd;

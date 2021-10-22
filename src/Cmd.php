@@ -307,12 +307,13 @@ class Cmd
             return false;
         }
 
-        if (false === ($status = proc_get_status($this->procHandle))) {
+        // as of PHP8 this if is obsolete
+        if (false === ($status = proc_get_status($this->procHandle))) { /** @phpstan-ignore-line */
             $this->shutdown();
             throw new CmdException('failed to read process status');
         }
         if (!$status['running']) {
-            if (null === $this->exitCode) {
+            if (null === $this->exitCode && -1 !== $status['exitcode']) {
                 $this->exitCode = $status['exitcode'];
             }
             return false;
@@ -407,7 +408,7 @@ class Cmd
             proc_terminate($this->procHandle, SIGKILL);
             $status = proc_get_status($this->procHandle);
             $this->exitCode = proc_close($this->procHandle);
-            if (false !== $status && !$status['running']) {
+            if (false !== $status && !$status['running'] && -1 !== $status['exitcode']) {
                 $this->exitCode = $status['exitcode'];
             }
         }

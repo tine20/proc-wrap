@@ -9,7 +9,7 @@ on:
       - main
 defaults:
   run:
-    shell: pwsh
+    shell: bash
 
 jobs:
   test:

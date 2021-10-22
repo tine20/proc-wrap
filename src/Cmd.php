@@ -244,7 +244,7 @@ class Cmd
                 assert($pipeDescriptor instanceof PipeDescriptor);
                 $pipeDescriptor->setStream($stream);
                 if ($pipeDescriptor->isWPipe()) {
-                    $this->wpipes[$stream] = $pipeDescriptor;
+                    $this->wpipes[(int)$stream] = $pipeDescriptor;
                 }
             }
         } catch (CmdException $cmdE) {
@@ -366,9 +366,9 @@ class Cmd
                 if ($success) {
                     foreach ($read as $stream) {
                         if (feof($stream)) { /** @phpstan-ignore-line */
-                            unset($this->wpipes[$stream]); /** @phpstan-ignore-line */
+                            unset($this->wpipes[(int)$stream]); /** @phpstan-ignore-line */
                         } else {
-                            $this->wpipes[$stream]->readChunk(); /** @phpstan-ignore-line */
+                            $this->wpipes[(int)$stream]->readChunk(); /** @phpstan-ignore-line */
                         }
                     }
                 }

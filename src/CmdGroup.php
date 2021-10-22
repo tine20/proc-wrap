@@ -75,7 +75,7 @@ class CmdGroup
                 foreach ($cmd->getIODescriptors() as $descriptor) {
                     /** @var resource $stream */
                     if ($descriptor instanceof PipeDescriptor && $descriptor->isWPipe() && !feof($stream = $descriptor->getStream())) { /** @phpstan-ignore-line */
-                        $cmds[$stream] = $cmd; /** @phpstan-ignore-line */
+                        $cmds[(int)$stream] = $cmd; /** @phpstan-ignore-line */
                         $streams[] = $stream;
                     }
                 }
@@ -94,7 +94,7 @@ class CmdGroup
 
             if ($success) {
                 foreach ($streams as $stream) {
-                    $cmd = $cmds[$stream]; /** @phpstan-ignore-line */
+                    $cmd = $cmds[(int)$stream]; /** @phpstan-ignore-line */
                     if (!$cmd->poll()) {
                         unset($this->proccesses[array_search($cmd, $this->proccesses, true)]);
                     }

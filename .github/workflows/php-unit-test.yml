@@ -35,8 +35,5 @@ jobs:
     - name: PHPStan
       run: vendor/bin/phpstan analyse --level 8 src test
 
-    - name: PHP CS
-      run: vendor/bin/phpcs -s src test
-
     - name: Unit tests
       run: vendor/bin/phpunit test/AllTests.php

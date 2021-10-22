@@ -2,6 +2,7 @@
   "name": "tine20/proc-wrap",
   "type": "library",
   "description": "A PHP proc_open wrapper to handle multiple async background processes with timeout support",
+  "license": "BSD-3-Clause",
   "keywords": [
     "proc_open",
     "exec",
@@ -13,7 +14,9 @@
     "stderr",
     "process groups"
   ],
-  "license": "BSD-3-Clause",
+  "support": {
+    "issues": "https://github.com/tine20/proc-wrap/issues"
+  },
   "authors": [
     {
       "name": "Paul Mehrer"

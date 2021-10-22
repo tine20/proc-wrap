@@ -1,0 +1,42 @@
+name: PHP unit test CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  test:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-20.04]
+        php-versions: ['7.2', '7.3', '7.4', '8.0']
+
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+
+    - name: Composer install
+      run: composer install
+
+    - name: PHPStan
+      run: vendor/bin/phpstan analyse --level 8 src test
+
+    - name: PHP CS
+      run: vendor/bin/phpcs -s src test
+
+    - name: Unit tests
+      run: vendor/bin/phpunit test/AllTests.php

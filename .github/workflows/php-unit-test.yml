@@ -33,7 +33,7 @@ jobs:
       run: composer install
 
     - name: PHPStan
-      run: vendor/bin/phpstan analyse --level 8 src test
+      run: vendor/bin/phpstan analyse --level 8 -c phpstan.neon src test
 
     - name: Unit tests
       run: vendor/bin/phpunit test/AllTests.php

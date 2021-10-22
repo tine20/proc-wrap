@@ -9,7 +9,7 @@ on:
       - main
 defaults:
   run:
-    shell: bash
+    shell: ash
 
 jobs:
   test:

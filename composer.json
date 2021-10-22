@@ -53,10 +53,10 @@
       "@dockerPhpStan",
       "@dockerUnitTest"
     ],
-    "dockerLint": "cd docker; docker-compose run cli bash -c 'cd /procWrap; find ./src -type f -exec php -l {} \\; | grep -v \"No syntax errors detected in\" || find ./test -type f -exec php -l {} \\; | grep -v \"No syntax errors detected in\" || echo \"php -l [OK]\"'",
-    "dockerPhpStan": "cd docker; docker-compose run cli bash -c 'cd /procWrap; vendor/bin/phpstan analyse --level 8 -c phpstan.neon ./src ./test'",
-    "dockerPhpStanClear": "cd docker; docker-compose run cli bash -c 'cd /procWrap; vendor/bin/phpstan clear-result-cache'",
-    "dockerCS": "cd docker; docker-compose run cli bash -c 'cd /procWrap; vendor/bin/phpcs -s ./src ./test'",
-    "dockerUnitTest": "cd docker; docker-compose run cli bash -c 'cd /procWrap; vendor/bin/phpunit ./test/AllTests.php'"
+    "dockerLint": "cd docker; docker-compose run cli ash -c 'cd /procWrap; find ./src -type f -exec php -l {} \\; | grep -v \"No syntax errors detected in\" || find ./test -type f -exec php -l {} \\; | grep -v \"No syntax errors detected in\" || echo \"php -l [OK]\"'",
+    "dockerPhpStan": "cd docker; docker-compose run cli ash -c 'cd /procWrap; vendor/bin/phpstan analyse --level 8 -c phpstan.neon ./src ./test'",
+    "dockerPhpStanClear": "cd docker; docker-compose run cli ash -c 'cd /procWrap; vendor/bin/phpstan clear-result-cache'",
+    "dockerCS": "cd docker; docker-compose run cli ash -c 'cd /procWrap; vendor/bin/phpcs -s ./src ./test'",
+    "dockerUnitTest": "cd docker; docker-compose run cli ash -c 'cd /procWrap; vendor/bin/phpunit ./test/AllTests.php'"
   }
 }

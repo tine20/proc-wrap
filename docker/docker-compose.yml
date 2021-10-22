@@ -1,6 +1,6 @@
 version: '2'
 services:
   cli:
-    image: php:8
+    image: php:8-alpine
     volumes:
       - ../:/procWrap/

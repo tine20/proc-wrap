@@ -58,6 +58,7 @@ class CmdGroup
         $this->isRunning = true;
         $this->queue = $this->cmds;
         reset($this->queue);
+        $this->proccesses = new \SplObjectStorage();
         $this->startProcesses();
 
         if ($this->background) {
@@ -96,13 +97,13 @@ class CmdGroup
                 foreach ($streams as $stream) {
                     $cmd = $cmds[(int)$stream]; /** @phpstan-ignore-line */
                     if (!$cmd->poll()) {
-                        unset($this->proccesses[array_search($cmd, $this->proccesses, true)]);
+                        $this->proccesses->detach($cmd);
                     }
                 }
             }
 
             $this->startProcesses();
-        } while (!empty($this->proccesses));
+        } while ($this->proccesses->count() > 0);
     }
 
     public function poll(): bool
@@ -111,14 +112,14 @@ class CmdGroup
             throw new CmdException('CmdGroup is not running, can\'t poll');
         }
 
-        foreach ($this->proccesses as $key => $cmd) {
+        foreach ($this->proccesses as $cmd) {
             if (!$cmd->poll()) {
-                unset($this->proccesses[$key]);
+                $this->proccesses->detach($cmd);
             }
         }
         $this->startProcesses();
 
-        if (empty($this->proccesses)) {
+        if (0 === $this->proccesses->count()) {
             return false;
         }
         return true;
@@ -130,10 +131,10 @@ class CmdGroup
      */
     protected function startProcesses()
     {
-        while (count($this->proccesses) < $this->numProc && ($cmd = array_shift($this->queue))) {
+        while ($this->proccesses->count() < $this->numProc && ($cmd = array_shift($this->queue))) {
             $cmd->runInBackground(true);
             $cmd->exec();
-            $this->proccesses[] = $cmd;
+            $this->proccesses->attach($cmd);
         }
     }
 
@@ -148,9 +149,9 @@ class CmdGroup
     protected $queue = [];
 
     /**
-     * @var array<Cmd>
+     * @var \SplObjectStorage<Cmd, Cmd>
      */
-    protected $proccesses = [];
+    protected $proccesses;
 
     /**
      * @var int

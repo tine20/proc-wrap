@@ -393,7 +393,7 @@ class Cmd
         }
         $this->closePipes();
         if (null === $this->exitCode) {
-            $status = proc_get_status($this->procHandle);
+            $status = proc_get_status($this->procHandle); /** @phpstan-ignore-line */
             $this->exitCode = proc_close($this->procHandle); /** @phpstan-ignore-line */
             if (false !== $status && !$status['running'] && -1 !== $status['exitcode']) {
                 $this->exitCode = $status['exitcode'];
@@ -413,12 +413,12 @@ class Cmd
             if (null === $this->exitCode) {
                 proc_terminate($this->procHandle, SIGKILL);
                 $status = proc_get_status($this->procHandle);
-                $this->exitCode = proc_close($this->procHandle); /** @phpstan-ignore-line */
+                $this->exitCode = proc_close($this->procHandle);
                 if (false !== $status && !$status['running'] && -1 !== $status['exitcode']) {
                     $this->exitCode = $status['exitcode'];
                 }
             } else {
-                proc_close($this->procHandle); /** @phpstan-ignore-line */
+                proc_close($this->procHandle);
             }
         }
         $this->procClosed = microtime(true);

@@ -395,7 +395,10 @@ class Cmd
         if (null === $this->exitCode) {
             $this->isRunning();
         }
-        proc_close($this->procHandle); /** @phpstan-ignore-line */
+        $result = proc_close($this->procHandle); /** @phpstan-ignore-line */
+        if (null === $this->exitCode) {
+            $this->exitCode = $result;
+        }
 
         $this->procClosed = microtime(true);
         $this->procHandle = null;

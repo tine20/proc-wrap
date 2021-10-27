@@ -152,8 +152,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
         $group->exec();
 
-        $this->assertSame(0, $cmd->getExitCode());
-        $this->assertSame(0, $cmd1->getExitCode());
+        $this->assertSame(0, $cmd->getExitCode(), $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
+        $this->assertSame(0, $cmd1->getExitCode(), $cmd1->getStdOut() . PHP_EOL . $cmd1->getStdErr());
 
         $this->assertSame('done', rtrim($cmd->getStdOut()));
         $this->assertLessThan(150, $cmd->getTotalExecutionTimeMilli());

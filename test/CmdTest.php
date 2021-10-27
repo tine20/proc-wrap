@@ -61,8 +61,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
     public function testStdInStdOut(): void
     {
-        ($cmd = new Cmd('echo "OK" && read && echo $REPLY && read && echo $REPLY'))
-            ->setTimeoutInMilliSeconds(200)
+        ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
+            ->setTimeoutInMilliSeconds(2000)
             ->setIODescriptor(
                 (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd) {
                     static $expect = null;
@@ -86,7 +86,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
     public function testStdInStdOutBackground(): void
     {
-        ($cmd = new Cmd('echo "OK" && read && echo $REPLY && read && echo $REPLY'))
+        ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
             ->runInBackground()
             ->setTimeoutInMilliSeconds(200)
             ->setIODescriptor(
@@ -115,7 +115,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
     {
         $group = new CmdGroup();
         $group->addCmd(
-            ($cmd = new Cmd('echo "OK" && read && echo $REPLY && read && echo $REPLY'))
+            ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
             ->setTimeoutInMilliSeconds(500)
                 ->setIODescriptor(
                     (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd) {
@@ -133,7 +133,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
                 )
         );
         $group->addCmd(
-            ($cmd1 = new Cmd('echo "OK" && read && echo $REPLY && read && echo $REPLY'))
+            ($cmd1 = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
             ->setIODescriptor(
                 (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd1) {
                     static $expect = null;

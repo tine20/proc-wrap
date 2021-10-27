@@ -21,8 +21,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($cmd->isRunning());
         $this->assertSame('a', rtrim($cmd->getStdOut()));
         $this->assertSame(1, $cmd->getExitCode());
-        $this->assertLessThan(50, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(10, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(100, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(50, $cmd->getExecutionTimeMilli());
     }
 
     public function testEchoA(): void
@@ -32,8 +32,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($cmd->isRunning());
         $this->assertSame('a', rtrim($cmd->getStdOut()));
         $this->assertSame(0, $cmd->getExitCode());
-        $this->assertLessThan(50, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(10, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(100, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(50, $cmd->getExecutionTimeMilli());
     }
 
     public function testBackgroundEchoA(): void
@@ -43,8 +43,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame(0, $cmd->getExitCode());
         $this->assertSame('a', rtrim($cmd->getStdOut()));
-        $this->assertLessThan(50, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(10, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(100, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(50, $cmd->getExecutionTimeMilli());
     }
 
     public function testTimeout(): void
@@ -62,7 +62,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
     public function testStdInStdOut(): void
     {
         ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
-            ->setTimeoutInMilliSeconds(2000)
+            ->setTimeoutInSeconds(1)
             ->setIODescriptor(
                 (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd) {
                     static $expect = null;
@@ -80,15 +80,15 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame('done', rtrim($cmd->getStdOut()));
         $this->assertSame(0, $cmd->getExitCode());
-        $this->assertLessThan(150, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(100, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(300, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(200, $cmd->getExecutionTimeMilli());
     }
 
     public function testStdInStdOutBackground(): void
     {
         ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
             ->runInBackground()
-            ->setTimeoutInMilliSeconds(200)
+            ->setTimeoutInSeconds(1)
             ->setIODescriptor(
                 (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd) {
                     static $expect = null;
@@ -107,8 +107,8 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
         $this->assertSame('done', rtrim($cmd->getStdOut()));
         $this->assertSame(0, $cmd->getExitCode());
-        $this->assertLessThan(150, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(100, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(300, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(200, $cmd->getExecutionTimeMilli());
     }
 
     public function testCmdGrpStdInStdOut(): void
@@ -116,7 +116,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         $group = new CmdGroup();
         $group->addCmd(
             ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
-            ->setTimeoutInMilliSeconds(500)
+                ->setTimeoutInSeconds(1)
                 ->setIODescriptor(
                     (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd) {
                         static $expect = null;
@@ -134,32 +134,43 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         );
         $group->addCmd(
             ($cmd1 = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
-            ->setIODescriptor(
-                (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd1) {
-                    static $expect = null;
-                    $data .= ltrim($chunk);
-                    if (null !== $expect && strpos($data, $expect) === 0) {
-                        fwrite($cmd1->getIODescriptor(Cmd::STDIN)->getStream(), 'done1' . PHP_EOL); /** @phpstan-ignore-line */
-                        $data = substr($data, 4);
-                    } elseif (strpos($data, 'OK') === 0) {
-                        fwrite($cmd1->getIODescriptor(Cmd::STDIN)->getStream(), ($expect = 'abc') . PHP_EOL); /** @phpstan-ignore-line */
-                        $data = substr($data, 3);
-                    }
-                    return $data;
-                })))
-            )
+                ->setTimeoutInSeconds(1)
+                ->setIODescriptor(
+                    (new PipeDescriptor(Cmd::STDOUT, 'w', new PipeStreamDelegatorClosure(false, function($data, $chunk) use ($cmd1) {
+                        static $expect = null;
+                        $data .= ltrim($chunk);
+                        if (null !== $expect && strpos($data, $expect) === 0) {
+                            fwrite($cmd1->getIODescriptor(Cmd::STDIN)->getStream(), 'done1' . PHP_EOL); /** @phpstan-ignore-line */
+                            $data = substr($data, 4);
+                        } elseif (strpos($data, 'OK') === 0) {
+                            fwrite($cmd1->getIODescriptor(Cmd::STDIN)->getStream(), ($expect = 'abc') . PHP_EOL); /** @phpstan-ignore-line */
+                            $data = substr($data, 3);
+                        }
+                        return $data;
+                    })))
+                )
         );
 
         $group->exec();
 
-        $this->assertSame(0, $cmd->getExitCode(), $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
-        $this->assertSame(0, $cmd1->getExitCode(), $cmd1->getStdOut() . PHP_EOL . $cmd1->getStdErr());
+        try {
+            $exitCode = $cmd->getExitCode();
+        } catch (\Throwable $t) {
+            $this->fail($t->getMessage() . $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
+        }
+        $this->assertSame(0, $exitCode, $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
+        try {
+            $exitCode = $cmd1->getExitCode();
+        } catch (\Throwable $t) {
+            $this->fail($t->getMessage() . $cmd1->getStdOut() . PHP_EOL . $cmd1->getStdErr());
+        }
+        $this->assertSame(0, $exitCode, $cmd1->getStdOut() . PHP_EOL . $cmd1->getStdErr());
 
         $this->assertSame('done', rtrim($cmd->getStdOut()));
-        $this->assertLessThan(150, $cmd->getTotalExecutionTimeMilli());
-        $this->assertLessThan(100, $cmd->getExecutionTimeMilli());
+        $this->assertLessThan(300, $cmd->getTotalExecutionTimeMilli());
+        $this->assertLessThan(200, $cmd->getExecutionTimeMilli());
         $this->assertSame('done1', rtrim($cmd1->getStdOut()));
-        $this->assertLessThan(150, $cmd1->getTotalExecutionTimeMilli());
-        $this->assertLessThan(100, $cmd1->getExecutionTimeMilli());
+        $this->assertLessThan(300, $cmd1->getTotalExecutionTimeMilli());
+        $this->assertLessThan(200, $cmd1->getExecutionTimeMilli());
     }
 }

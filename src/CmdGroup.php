@@ -88,7 +88,12 @@ class CmdGroup
             }*/
             // a signal interrupting the system call may cause a warning => @
             // TODO is the timeout = float_max case a 32 bit issue?
-            $success = @stream_select($streams, $w, $e, 0, max(0, (int)(($minTimeout - microtime(true)) * 1000 * 1000))); /** @phpstan-ignore-line */
+            if (!empty($streams)) {
+                $success = @stream_select($streams, $w, $e, 0, max(0, (int)(($minTimeout - microtime(true)) * 1000 * 1000))); /** @phpstan-ignore-line */
+            } else {
+                $success = false;
+                $this->poll();
+            }
             /*if ($this->doSignalDispatch) {
                 pcntl_signal_dispatch();
             }*/

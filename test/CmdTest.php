@@ -156,7 +156,9 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         try {
             $exitCode = $cmd->getExitCode();
         } catch (\Throwable $t) {
-            $this->fail($t->getMessage() . $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
+            $this->assertFalse($cmd->poll());
+            $exitCode = $cmd->getExitCode();
+            //$this->fail($t->getMessage() . $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
         }
         $this->assertSame(0, $exitCode, $cmd->getStdOut() . PHP_EOL . $cmd->getStdErr());
         try {

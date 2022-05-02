@@ -36,7 +36,7 @@ class Cmd
      * @param mixed $cmd Command to exec and its parameters
      * @param array<IODescriptor> $ioDescriptors
      */
-    public function __construct(mixed $cmd, array $ioDescriptors = [])
+    public function __construct($cmd, array $ioDescriptors = [])
     {
         $this->cmd = $cmd;
         $this->ioDescriptors = $ioDescriptors ?: [
@@ -221,7 +221,7 @@ class Cmd
         }
 
         $pipes = [];
-        $this->procHandle = proc_open($this->cmd, $descriptor_spec, $pipes);
+        $this->procHandle = proc_open($this->cmd, $descriptor_spec, $pipes); /** @phpstan-ignore-line TODO remove this once php7.4 dropped */
 
         if (!is_resource($this->procHandle)) {
             throw new CmdException('proc_open failed');
@@ -307,7 +307,7 @@ class Cmd
         }
 
         $status = proc_get_status($this->procHandle);
-        if (!$status['running']) {
+        if ($status && !$status['running']) { /** @phpstan-ignore-line */
             if (null === $this->exitCode) {
                 $this->exitCode = $status['exitcode'];
             }
@@ -463,7 +463,7 @@ class Cmd
             if (null === $this->exitCode) {
                 $status = proc_get_status($this->procHandle);
                 $this->exitCode = proc_close($this->procHandle);
-                if (!$status['running'] && -1 !== $status['exitcode']) {
+                if ($status && !$status['running'] && -1 !== $status['exitcode']) { /** @phpstan-ignore-line */
                     $this->exitCode = $status['exitcode'];
                 }
             } else {

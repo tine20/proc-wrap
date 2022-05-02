@@ -1,7 +1,21 @@
 version: '2'
 services:
+  cli-7.4:
+    build: ./cli-7.4
+    image: phpcli:7.4.1
+    volumes:
+      - ../:/procWrap/
+  cli-8.0:
+    build: ./cli-8.0
+    image: phpcli:8.0.1
+    volumes:
+      - ../:/procWrap/
+  cli-8.1:
+    build: ./cli-8.1
+    image: phpcli:8.1.1
+    volumes:
+      - ../:/procWrap/
   cli:
-    build: ./cli
-    image: phpcli:0.1
+    image: phpcli:7.4.1
     volumes:
       - ../:/procWrap/

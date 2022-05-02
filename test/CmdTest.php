@@ -19,7 +19,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         $cmd = (new Cmd('echo "a"; exit 1'))->exec();
 
         $this->assertFalse($cmd->isRunning());
-        $this->assertSame('a', rtrim($cmd->getStdOut()));
+        $this->assertSame('a', rtrim($cmd->getStdOut()), 'stdErr: ' . $cmd->getStdErr());
         $this->assertSame(1, $cmd->getExitCode());
         $this->assertLessThan(100, $cmd->getTotalExecutionTimeMilli());
         $this->assertLessThan(50, $cmd->getExecutionTimeMilli());
@@ -27,7 +27,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
 
     public function testEchoA(): void
     {
-        $cmd = (new Cmd('echo "a"'))->exec();
+        $cmd = (new Cmd(['echo', 'a']))->exec();
 
         $this->assertFalse($cmd->isRunning());
         $this->assertSame('a', rtrim($cmd->getStdOut()));
@@ -114,7 +114,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
     public function testCmdGrpStdInStdOut(): void
     {
         $group = new CmdGroup();
-        $group->addCmd(
+        $group->attachCmd(
             ($cmd = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
                 ->setTimeoutInSeconds(1)
                 ->setIODescriptor(
@@ -132,7 +132,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
                     })))
                 )
         );
-        $group->addCmd(
+        $group->attachCmd(
             ($cmd1 = new Cmd('echo "OK" && read REPLY && echo $REPLY && read REPLY && echo $REPLY'))
                 ->setTimeoutInSeconds(1)
                 ->setIODescriptor(

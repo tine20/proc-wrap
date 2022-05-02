@@ -18,7 +18,7 @@ class PipeStreamDelegatorClosure extends PipeStreamDelegator
      * @param bool $isBlocking
      * @param \Closure $closure
      */
-    public function __construct(bool $isBlocking, $closure)
+    public function __construct(bool $isBlocking, \Closure $closure)
     {
         parent::__construct($isBlocking);
         $this->closure = $closure;

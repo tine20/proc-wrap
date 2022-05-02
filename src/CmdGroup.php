@@ -14,16 +14,27 @@ namespace Tine20\ProcWrap;
 
 class CmdGroup
 {
-    public function setNumProcesses(int $value): self
+    public function __construct()
+    {
+        $this->cmds = new \SplObjectStorage();
+    }
+
+    public function setNumParallelProcesses(int $value): self
     {
         if ($value < 1) throw new CmdException('numProc can\'t be less than 1');
         $this->numProc = $value;
         return $this;
     }
 
-    public function addCmd(Cmd $cmd): self
+    public function attachCmd(Cmd $cmd): self
     {
-        $this->cmds[] = $cmd;
+        $this->cmds->attach($cmd);
+        return $this;
+    }
+
+    public function detachCmd(Cmd $cmd): self
+    {
+        $this->cmds->detach($cmd);
         return $this;
     }
 
@@ -56,8 +67,10 @@ class CmdGroup
         }
 
         $this->isRunning = true;
-        $this->queue = $this->cmds;
-        reset($this->queue);
+        $this->queue = [];
+        foreach ($this->cmds as $cmd) {
+            $this->queue[] = $cmd;
+        }
         $this->proccesses = new \SplObjectStorage();
         $this->startProcesses();
 
@@ -71,6 +84,7 @@ class CmdGroup
             $e = [];
             $cmds = [];
             $minTimeout = PHP_FLOAT_MAX;
+            /** @var Cmd $cmd */
             foreach ($this->proccesses as $cmd) {
                 $minTimeout = min($minTimeout, $cmd->getTimeoutTS());
                 foreach ($cmd->getIODescriptors() as $descriptor) {
@@ -144,9 +158,9 @@ class CmdGroup
     }
 
     /**
-     * @var array<Cmd>
+     * @var \SplObjectStorage<Cmd, Cmd>
      */
-    protected $cmds = [];
+    protected $cmds;
 
     /**
      * @var array<Cmd>

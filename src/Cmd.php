@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Tine20\ProcWrap;
 
 /**
- * Class represents a single, scoped command. On objects destruction a running process will be terminated
+ * Class represents a single command.
  * can be executed multiple times in a row if recycled() after each execution.
  *
  * relies on
@@ -38,6 +38,13 @@ class Cmd
      */
     public function __construct($cmd, array $ioDescriptors = [])
     {
+        if (is_array($cmd)) {
+            $c = escapeshellcmd('exec ' . array_shift($cmd));
+            foreach($cmd as $arg) {
+                $c .= ' ' . escapeshellarg($arg);
+            }
+            $cmd = $c;
+        }
         $this->cmd = $cmd;
         $this->ioDescriptors = $ioDescriptors ?: [
             self::STDIN  => new PipeDescriptor(self::STDIN,  'r'),
@@ -49,7 +56,7 @@ class Cmd
             self::$objs = new \SplObjectStorage(); /** @phpstan-ignore-line */
         }
 
-        self::$objs->attach(\WeakReference::create($this));
+        self::$objs->attach($this);
         self::registerSignalHandler();
     }
 
@@ -60,14 +67,6 @@ class Cmd
     {
         if ($this->isRunning()) {
             $this->shutdown();
-        }
-
-        if (null !== self::$objs) {
-            foreach (self::$objs as $obj) {
-                if (!$obj->get() || $obj->get() === $this) {
-                    self::$objs->detach($obj);
-                }
-            }
         }
     }
 
@@ -325,6 +324,14 @@ class Cmd
             / 1000);
     }
 
+    public function terminate(): void
+    {
+        self::$objs->detach($this);
+        if ($this->isRunning()) {
+            $this->shutdown();
+        }
+    }
+
     public static function setAlarm(): void
     {
         if (null === self::$objs) {
@@ -332,16 +339,11 @@ class Cmd
             return;
         }
         $alarm = null;
-        foreach (self::$objs as $obj) {
-            /** @var self $cmd */
-            if (!($cmd = $obj->get())) {
-                self::$objs->detach($obj);
-            } else {
-                $timeout = $cmd->getRemainingTimeoutInSec();
-                if ($timeout < 1 && $cmd->isRunning()) $timeout = 1;
-                if ($timeout > 0 && (null === $alarm || $timeout < $alarm)) {
-                    $alarm = $timeout;
-                }
+        foreach (self::$objs as $cmd) {
+            $timeout = $cmd->getRemainingTimeoutInSec();
+            if ($timeout < 1 && $cmd->isRunning()) $timeout = 1;
+            if ($timeout > 0 && (null === $alarm || $timeout < $alarm)) {
+                $alarm = $timeout;
             }
         }
         pcntl_alarm($alarm ?: 0);
@@ -353,13 +355,8 @@ class Cmd
 
         if (null === self::$objs) return;
 
-        foreach (self::$objs as $obj) {
-            /** @var self $cmd */
-            if (!($cmd = $obj->get())) {
-                self::$objs->detach($obj);
-            } else {
-                $cmd->poll();
-            }
+        foreach (self::$objs as $cmd) {
+            $cmd->poll();
         }
     }
 
@@ -518,7 +515,7 @@ class Cmd
     }
 
     /**
-     * @var array<string> Command to exec
+     * @var string Command to exec
      */
     protected $cmd;
 
@@ -573,7 +570,7 @@ class Cmd
     protected $ioDescriptors = [];
 
     /**
-     * @var \SplObjectStorage<\WeakReference<Cmd>, \WeakReference<Cmd>>
+     * @var \SplObjectStorage<Cmd, Cmd>
      */
-    protected static ?\SplObjectStorage $objs = null;
+    protected static $objs = null;
 }

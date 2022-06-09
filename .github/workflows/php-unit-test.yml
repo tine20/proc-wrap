@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - php72
   pull_request:
     branches:
       - main
+      - php72
 defaults:
   run:
     shell: bash

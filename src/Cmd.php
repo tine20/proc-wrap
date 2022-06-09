@@ -15,19 +15,12 @@ namespace Tine20\ProcWrap;
 /**
  * Class represents a single command.
  * can be executed multiple times in a row if recycled() after each execution.
- *
- * relies on
- * pcntl_async_signals(true);
- * pcntl_signal(SIGALRM, ...);
  */
 class Cmd
 {
     public const STDIN  = 0;
     public const STDOUT = 1;
     public const STDERR = 2;
-
-    /** @var bool */
-    public static $useAsyncSignals = true;
 
     /**
      * Cmd constructor.
@@ -51,13 +44,6 @@ class Cmd
             self::STDOUT => new PipeDescriptor(self::STDOUT, 'w'),
             self::STDERR => new PipeDescriptor(self::STDERR, 'w'),
         ];
-
-        if (null === self::$objs) {
-            self::$objs = new \SplObjectStorage(); /** @phpstan-ignore-line */
-        }
-
-        self::$objs->attach($this);
-        self::registerSignalHandler();
     }
 
     /**
@@ -215,21 +201,13 @@ class Cmd
         }
 
         $this->procStarted = microtime(true);
-        if ($this->startTimeoutBeforeProcOpen) {
-            self::setAlarm();
-        }
-
         $pipes = [];
         $this->procHandle = proc_open($this->cmd, $descriptor_spec, $pipes); /** @phpstan-ignore-line TODO remove this once php7.4 dropped */
 
         if (!is_resource($this->procHandle)) {
             throw new CmdException('proc_open failed');
         }
-
         $this->procOpened = microtime(true);
-        if (!$this->startTimeoutBeforeProcOpen) {
-            self::setAlarm();
-        }
 
         // set pipes to none blocking
         try {
@@ -326,51 +304,8 @@ class Cmd
 
     public function terminate(): void
     {
-        self::$objs->detach($this);
         if ($this->isRunning()) {
             $this->shutdown();
-        }
-    }
-
-    public static function setAlarm(): void
-    {
-        if (null === self::$objs) {
-            pcntl_alarm(0);
-            return;
-        }
-        $alarm = null;
-        foreach (self::$objs as $cmd) {
-            $timeout = $cmd->getRemainingTimeoutInSec();
-            if ($timeout < 1 && $cmd->isRunning()) $timeout = 1;
-            if ($timeout > 0 && (null === $alarm || $timeout < $alarm)) {
-                $alarm = $timeout;
-            }
-        }
-        pcntl_alarm($alarm ?: 0);
-    }
-
-    public static function sigAlarm(): void
-    {
-        self::setAlarm();
-
-        if (null === self::$objs) return;
-
-        foreach (self::$objs as $cmd) {
-            $cmd->poll();
-        }
-    }
-
-    protected static function registerSignalHandler(): void
-    {
-        static $registered = false;
-        if (!$registered) {
-            if (self::$useAsyncSignals) {
-                pcntl_async_signals(true);
-            }
-            pcntl_signal(SIGALRM, function() {
-                self::sigAlarm();
-            });
-            $registered = true;
         }
     }
 
@@ -409,11 +344,11 @@ class Cmd
                 $w = null;
                 $e = null;
 
-                if (0 === (int)$timeout) {
-                    $sec = $micro = 0;
-                } elseif (null === $timeout) {
+                if (null === $timeout) {
                     $sec = null;
                     $micro = 0; // PHP8 fuckup :-/, fixed in PHP8.1 -> change this to null
+                } elseif (0 === (int)$timeout) {
+                    $sec = $micro = 0;
                 } else {
                     $tDiffMS = $timeout - microtime(true);
                     if ($tDiffMS < 0) $tDiffMS = 0;
@@ -450,57 +385,43 @@ class Cmd
             $pipeDescriptor->readChunk();
         }
 
-        // as of now, we do not want to be disturbed!
-        $oldAsyncVal = pcntl_async_signals(false);
-        try {
-            $this->closePipes();
-            if (!is_resource($this->procHandle)) {
-                return;
+
+        $this->closePipes();
+        if (!is_resource($this->procHandle)) {
+            return;
+        }
+        if (null === $this->exitCode) {
+            $status = proc_get_status($this->procHandle);
+            $this->exitCode = proc_close($this->procHandle);
+            if ($status && !$status['running'] && -1 !== $status['exitcode']) { /** @phpstan-ignore-line */
+                $this->exitCode = $status['exitcode'];
             }
+        } else {
+            proc_close($this->procHandle);
+        }
+
+        $this->procClosed = microtime(true);
+        $this->procHandle = null;
+    }
+
+    protected function shutdown(): void
+    {
+
+        $this->closePipes();
+        if (is_resource($this->procHandle)) {
             if (null === $this->exitCode) {
+                proc_terminate($this->procHandle, 9 /*SIGKILL*/);
                 $status = proc_get_status($this->procHandle);
                 $this->exitCode = proc_close($this->procHandle);
-                if ($status && !$status['running'] && -1 !== $status['exitcode']) { /** @phpstan-ignore-line */
+                if (false !== $status && !$status['running'] && -1 !== $status['exitcode']) {
                     $this->exitCode = $status['exitcode'];
                 }
             } else {
                 proc_close($this->procHandle);
             }
-
-            $this->procClosed = microtime(true);
-            $this->procHandle = null;
-        } finally {
-            pcntl_async_signals($oldAsyncVal);
         }
-        pcntl_signal_dispatch();
-        self::setAlarm();
-    }
-
-    protected function shutdown(): void
-    {
-        // we do not want to be disturbed!
-        $oldAsyncVal = pcntl_async_signals(false);
-        try {
-            $this->closePipes();
-            if (is_resource($this->procHandle)) {
-                if (null === $this->exitCode) {
-                    proc_terminate($this->procHandle, SIGKILL);
-                    $status = proc_get_status($this->procHandle);
-                    $this->exitCode = proc_close($this->procHandle);
-                    if (false !== $status && !$status['running'] && -1 !== $status['exitcode']) {
-                        $this->exitCode = $status['exitcode'];
-                    }
-                } else {
-                    proc_close($this->procHandle);
-                }
-            }
-            $this->procClosed = microtime(true);
-            $this->procHandle = null;
-        } finally {
-            pcntl_async_signals($oldAsyncVal);
-        }
-        pcntl_signal_dispatch();
-        self::setAlarm();
+        $this->procClosed = microtime(true);
+        $this->procHandle = null;
     }
 
     protected function closePipes(): void
@@ -568,9 +489,4 @@ class Cmd
      * @var array<IODescriptor>
      */
     protected $ioDescriptors = [];
-
-    /**
-     * @var \SplObjectStorage<Cmd, Cmd>
-     */
-    protected static $objs = null;
 }

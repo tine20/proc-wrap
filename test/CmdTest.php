@@ -54,7 +54,7 @@ class CmdTest extends \PHPUnit\Framework\TestCase
         $duration = (int)((microtime(true) - $start) * 1000);
 
         $this->assertSame('', rtrim($cmd->getStdOut()));
-        $this->assertSame(SIGKILL, $cmd->getExitCode());
+        $this->assertSame(9 /*SIGKILL*/, $cmd->getExitCode());
         $this->assertLessThanOrEqual($duration, $cmd->getExecutionTimeMilli());
         $this->assertLessThan(100, $duration);
     }
